@@ -1,0 +1,29 @@
+GET http://127.0.0.1:3000/workday/John
+
+###
+
+GET http://127.0.0.1:3000/workday/John/1634912814820
+
+###
+
+POST http://127.0.0.1:3000/workday/John
+Content-Type: application/json
+
+{
+    "userId": "John",
+    "checkIn": 1634984837125
+}
+
+###
+
+PATCH http://127.0.0.1:3000/workday/John/1634912814820
+Content-Type: application/json
+
+{
+    "userId": "John",
+    "checkOut": 1634912816820,
+    "pause": [{
+        "start": 1634912816820,
+        "end": 1634912916820
+    }]
+}
