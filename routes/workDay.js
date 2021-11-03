@@ -25,23 +25,14 @@ router.get('/:userId', async (req, res) => {
 
 // Get one workday for the user
 router.get('/:userId/:currentDay', async (req, res) => {
-    const query = {
-        $and: [
-            {$eq: ["$userId", req.params.userId]},
-            {$expr: {
-                $eq: [{$year: {$toDate: "$checkIn"}}, new Date(+req.params.currentDay).getFullYear()]
-            }},
-            {$expr: {
-                $eq: [{$month: {$toDate: "$checkIn"}}, new Date(+req.params.currentDay).getMonth()+1]
-            }},
-            {$expr: {
-                $eq: [{$dayOfMonth: {$toDate: "$checkIn"}}, new Date(+req.params.currentDay).getDate()]
-            }}
-        ]
-    }
-
+    const whichDay = new Date(+req.params.currentDay).toLocaleDateString()
     try{
-        const day = await workDay.find(query).then((day, err) => {
+        const day = await workDay.find({
+            $and: [
+                {userId: req.params.userId},
+                {dayId: whichDay}
+            ]
+        }).then((day, err) => {
             if (err) return res.status(400).json({error: err})
             res.json(day)
         })
@@ -52,44 +43,41 @@ router.get('/:userId/:currentDay', async (req, res) => {
 })
 
 // User checked in on a new day (return the ID of the day?)
-router.post('/:userId', async (req, res) => {
-    try{
-        const newDay = new workDay(req.body)
-        await newDay.save().then((newDay, err) => {
-            if (err) return res.status(400).json({error: err})
-            res.status(201).json(newDay)
-        })
-    }
-    catch(err){
-        res.status(500).json({error: err})
-    }
-})
+// router.post('/:userId', async (req, res) => {
+//     try{
+//         const newDay = new workDay(req.body)
+//         await newDay.save().then((newDay, err) => {
+//             if (err) return res.status(400).json({error: err})
+//             res.status(201).json(newDay)
+//         })
+//     }
+//     catch(err){
+//         res.status(500).json({error: err})
+//     }
+// })
 
-// Store new times for the day, or modify from the dashboard
+// Store new times for the day, or modify from the dashboard. If the day not exists, create it (upsert)
 router.patch('/:userId/:currentDay', async (req, res) => {
+    const whichDay = new Date(+req.params.currentDay).toLocaleDateString()
     try{
-        const updateDay = await workDay.updateOne({
+        const updateDay = await workDay.findOneAndUpdate({
             $and: [
-                {$eq: ["$userId", req.params.userId]},
-                {$expr: {
-                    $eq: [{$year: {$toDate: "$checkIn"}}, new Date(+req.params.currentDay).getFullYear()]
-                }},
-                {$expr: {
-                    $eq: [{$month: {$toDate: "$checkIn"}}, new Date(+req.params.currentDay).getMonth()+1]
-                }},
-                {$expr: {
-                    $eq: [{$dayOfMonth: {$toDate: "$checkIn"}}, new Date(+req.params.currentDay).getDate()]
-                }}
+                {userId: req.params.userId},
+                {dayId: whichDay}
             ]
         },
         {
             $set: {
+                dayId: whichDay,
                 checkIn: req.body.checkIn,
                 checkOut: req.body.checkOut,
                 pause: req.body.pause
             }
         },
-        // {upsert: true}        
+        {
+            upsert: true,
+            new: true
+        }        
         )
         .then((updateDay, err) => {
             if (err) return res.status(400).json({error: err})
@@ -100,6 +88,5 @@ router.patch('/:userId/:currentDay', async (req, res) => {
         res.status(500).json({error: err})
     }
 })
-
 
 export default router

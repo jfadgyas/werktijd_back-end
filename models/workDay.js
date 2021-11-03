@@ -7,6 +7,7 @@ const pauseSchema = Mongoose.Schema({
 
 const workDaySchema = Mongoose.Schema({
     userId: String,
+    dayId: String,
     checkIn: Number,
     checkOut: Number,
     pause: [pauseSchema]
